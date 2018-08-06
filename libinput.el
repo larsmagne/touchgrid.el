@@ -35,11 +35,16 @@
     (set-buffer (get-buffer-create "*libinput*"))
     (setq-local libinput--prev-point (point-max))
     (setq-local libinput--callback callback)
-    (when libinput-process
-      (delete-process libinput-process))
+    (libevent-stop)
     (setq libinput--process
 	  (start-process "libinput" (current-buffer) "libinput-debug-events"))
-    (set-process-filter libinput--process libinput--filter)))
+    (set-process-filter libinput--process 'libinput--filter)))
+
+(defun libevent-stop ()
+  "Stop libevent."
+  (interactive)
+  (when libinput--process
+    (delete-process libinput--process)))
 
 (defun libinput--filter (process string)
   (save-excursion
@@ -47,14 +52,17 @@
     (goto-char (point-max))
     (insert string)
     (goto-char libinput--prev-point)
-    (while (re-search-forward "^\\(.*\\)\n" nil t)
-      (push (match-string 1) lines))
-    (setq libinput--prev-point (point))
-    (dolist (line (nreverse lines))
-      (libinput--execute-line line))))
-
-(defun libinput--execute-line (line)
-  (funcall libinput--callback (libinput--parse-line line)))
+    (let ((lines nil))
+      (while (re-search-forward "^\\(.*\\)\n" nil t)
+	(push (match-string 1) lines))
+      (setq libinput--prev-point (point))
+      (dolist (line (nreverse lines))
+	(save-excursion
+	  (condition-case err
+	      (funcall libinput--callback (libinput--parse-line line))
+	    (error
+	     (libevent-stop)
+	     (message "Got an error: %s" err))))))))
 
 (defun libinput--parse-line (line)
   (let* ((elem (split-string line "[ \n\t]+" t))
