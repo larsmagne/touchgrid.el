@@ -35,37 +35,42 @@
     (set-buffer (get-buffer-create "*libinput*"))
     (setq-local libinput--prev-point (point-max))
     (setq-local libinput--callback callback)
-    (libevent-stop)
+    (libinput-stop)
     (setq libinput--process
 	  (start-process "libinput" (current-buffer) "libinput-debug-events"))
     (set-process-filter libinput--process 'libinput--filter)))
 
-(defun libevent-stop ()
-  "Stop libevent."
+(defun libinput-stop ()
+  "Stop libinput."
   (interactive)
   (when libinput--process
     (delete-process libinput--process)))
 
 (defun libinput--filter (process string)
-  (save-excursion
-    (set-buffer (process-buffer process))
-    (goto-char (point-max))
-    (insert string)
-    (goto-char libinput--prev-point)
-    (let ((lines nil))
+  (let ((lines nil)
+	(callback nil))
+    (save-excursion
+      (set-buffer (process-buffer process))
+      (setq callback libinput--callback)
+      (goto-char (point-max))
+      (insert string)
+      (goto-char libinput--prev-point)
       (while (re-search-forward "^\\(.*\\)\n" nil t)
 	(push (match-string 1) lines))
-      (setq libinput--prev-point (point))
-      (dolist (line (nreverse lines))
-	(save-excursion
-	  (condition-case err
-	      (funcall libinput--callback (libinput--parse-line line))
-	    (error
-	     (libevent-stop)
-	     (message "Got an error: %s" err))))))))
+      (setq libinput--prev-point (point)))
+    (dolist (line (nreverse lines))
+      (save-excursion
+	(condition-case err
+	    (funcall callback (libinput--parse-line line))
+	  (error
+	   (message "Got an error: %s" err)))))))
 
 (defun libinput--parse-line (line)
-  (let* ((elem (split-string line "[ \n\t]+" t))
+  ;; The output is on the form below.  I don't know what the minus
+  ;; means...
+  ;; -event3   KEYBOARD_KEY     +501.91s	*** (-1) pressed
+  ;;  event3   KEYBOARD_KEY     +502.02s	*** (-1) pressed
+  (let* ((elem (split-string (substring line 1) "[ \n\t]+" t))
 	 (type (cadr elem)))
     (append
      (list :device (car elem)
@@ -78,7 +83,10 @@
       ((equal type "TOUCH_DOWN")
        (let ((pos (split-string (nth 5 elem) "[ /]+")))
 	 (list :x (string-to-number (car pos))
-	       :y (string-to-number (cadr pos)))))))))
+	       :y (string-to-number (cadr pos)))))
+      ((equal type "SWITCH_TOGGLE")
+       (list :switch (nth 4 elem)
+	     :state (nth 6 elem)))))))
 
 (provide 'libinput)
 
