@@ -49,6 +49,8 @@
   (interactive)
   (libinput-start 'touchgrid--handle))
 
+(defvar touchgrid--action-number 0)
+
 (defun touchgrid--handle (event)
   ;;(message "%s" event)
   (when-let ((grid (touchgrid--reorient-grid
@@ -56,7 +58,6 @@
 				(cdr (assoc (getf event :device)
 					    touchgrid-actions)))))))
     (when (equal (getf event :type) "TOUCH_DOWN")
-      (message "%S" event)
       ;; The positions we get are percentages of width/height.
       (let* ((width (display-pixel-width))
 	     (height (display-pixel-height))
@@ -70,7 +71,7 @@
 	;; Disable all other commands when the keyboard is active.
 	(when (or (not touchgrid--keyboard)
 		  (eq action 'keyboard))
-	  (message "Doing action %s" action)
+	  (message "%d: Doing action %s" (incf touchgrid--action-number) action)
 	  (funcall (intern (format "touchgrid--%s" action) obarray)))))))
 
 (defvar touchgrid--grid-process nil)
@@ -99,7 +100,8 @@
 	      do (svg-line svg (* x box-width) 0 (* x box-width) height
 			   :stroke-color "black"
 			   :stroke-width "2px"))
-	(loop for (stroke color) in '((5 "black")
+	(loop for (stroke color) in '((10 "#202020")
+				      (5 "black")
 				      (0 "white"))
 	      do (loop for y from 0 upto (1- (length grid))
 		       do (loop for x from 0 upto (1- (length (car grid)))
@@ -158,13 +160,19 @@
 
 
 (defun touchgrid--play ()
-  (movie-play-best-file))
+  (touchgrid--emacs-focus)
+  (setq touchgrid--state "mpv")
+  (let ((movie-after-play-callback (lambda ()
+				     (setq touchgrid--state "emacs"))))
+    (call-interactively 'movie-play-best-file)))
 
 (defun touchgrid--delete ()
-  (movie-delete-file))
+  (touchgrid--emacs-focus)
+  (call-interactively 'movie-delete-file))
 
 (defun touchgrid--undelete ()
-  (movie-undo-delete))
+  (touchgrid--emacs-focus)
+  (call-interactively 'movie-undo-delete))
 
 (defun touchgrid--none ()
   )
