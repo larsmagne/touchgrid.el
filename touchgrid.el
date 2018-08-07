@@ -50,6 +50,7 @@
   (libinput-start 'touchgrid--handle))
 
 (defvar touchgrid--action-number 0)
+(defvar touchgrid--rotation nil)
 
 (defun touchgrid--handle (event)
   ;;(message "%s" event)
@@ -71,9 +72,17 @@
 	;; Disable all other commands when the keyboard is active.
 	(when (or (not touchgrid--keyboard)
 		  (eq action 'keyboard))
-	  (touchgrid--remove-grid)
+	  (unless (eq action 'grid)
+	    (touchgrid--remove-grid))
 	  (message "%d: Doing action %s" (incf touchgrid--action-number) action)
-	  (funcall (intern (format "touchgrid--%s" action) obarray)))))))
+	  (funcall (intern (format "touchgrid--%s" action) obarray))))))
+  (when (and (equal (getf event :type) "SWITCH_TOGGLE")
+	     (equal (getf event :switch) "tablet-mode"))
+    (setq touchgrid--rotation (equal (getf event :state) "0"))
+    (call-process "xrandr" nil nil nil "--output" "eDP-1" "--rotate"
+		  (if touchgrid--rotation
+		      "normal"
+		    "inverted"))))
 
 (defvar touchgrid--grid-process nil)
 
@@ -194,15 +203,6 @@
 (defun touchgrid--none ()
   )
 
-
-(defvar touchgrid--rotation nil)
-
-(defun touchgrid--rotate ()
-  (call-process "xrandr" nil nil nil "--output" "eDP-1" "--rotate"
-		(if touchgrid--rotation
-		    "normal"
-		  "inverted"))
-  (setq touchgrid--rotation (not touchgrid--rotation)))
 
 (defun touchgrid--emacs-focus ()
   (call-process "xdotool" nil nil nil "windowfocus" (touchgrid--find-emacs)))
