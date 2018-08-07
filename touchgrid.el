@@ -33,14 +33,14 @@
       (none        none         none  none        play      )
       (none        none         none  none        none      )
       (delete      none         none  none        undelete  ) 
-      (grid        none         noen  none        none      )
+      (grid        none         none  none        rotate     )
       (keyboard    none         none  none        play      ))
      ("mpv"
       (backward-1m backward-10s pause forward-10s forward-1m)
       (backward-1m backward-10s pause forward-10s forward-1m)
       (none        none         quit  none        none      ) 
       (grid        none         pause none        none      )
-      (keyboard    none         pause none        none      )))))
+      (keyboard    none         pause none        show-progress      )))))
 
 (defvar touchgrid--state "emacs")
 
@@ -71,22 +71,27 @@
 	;; Disable all other commands when the keyboard is active.
 	(when (or (not touchgrid--keyboard)
 		  (eq action 'keyboard))
+	  (touchgrid--remove-grid)
 	  (message "%d: Doing action %s" (incf touchgrid--action-number) action)
 	  (funcall (intern (format "touchgrid--%s" action) obarray)))))))
 
 (defvar touchgrid--grid-process nil)
 
+(defun touchgrid--remove-grid ()
+  (when (process-live-p touchgrid--grid-process)
+    (delete-process touchgrid--grid-process)
+    (when (file-exists-p "/tmp/grid.svg")
+      (delete-file "/tmp/grid.svg"))))
+
 (defun touchgrid--grid ()
   (if (process-live-p touchgrid--grid-process)
       (progn
-	(delete-process touchgrid--grid-process)
-	(when (file-exists-p "/tmp/grid.svg")
-	  (delete-file "/tmp/grid.svg"))
+	(touchgrid--remove-grid)
 	(touchgrid--emacs-focus))
     (with-temp-buffer
       (let* ((width (display-pixel-width))
 	     (height (display-pixel-height))
-	     (grid (touchgrid--reorient-grid (cdar (cdar touchgrid-actions))))
+	     (grid (cdr (assoc touchgrid--state (cdar touchgrid-actions))))
 	     (box-width (/ width (length (car grid))))
 	     (box-height (/ height (length grid)))
 	     (svg (svg-create width height)))
@@ -105,8 +110,11 @@
 				      (0 "white"))
 	      do (loop for y from 0 upto (1- (length grid))
 		       do (loop for x from 0 upto (1- (length (car grid)))
+				for action = (elt (elt grid y) x)
 				do (svg-text
-				    svg (symbol-name (elt (elt grid y) x))
+				    svg (if (eq action 'none)
+					    ""
+					  (symbol-name action))
 				    :text-anchor "middle"
 				    :font-size 50
 				    :stroke-width stroke
@@ -140,31 +148,40 @@
   (setq touchgrid--keyboard (not touchgrid--keyboard))
   (touchgrid--emacs-focus))
 
+(defun touchgrid--show-progress ()
+  (movie-send-mpv-command '((command . ["show-progress"]))))
+
 (defun touchgrid--backward-1m ()
-  (movie-send-mpv-command '((command . ["seek" -60 "relative" "keyframes"]))))
+  (movie-send-mpv-command '((command . ["seek" -60 "relative" "keyframes"])))
+  (touchgrid--show-progress))
 
 (defun touchgrid--forward-1m ()
-  (movie-send-mpv-command '((command . ["seek" 60 "relative" "keyframes"]))))
+  (movie-send-mpv-command '((command . ["seek" 60 "relative" "keyframes"])))
+  (touchgrid--show-progress))
 
 (defun touchgrid--backward-10s ()
-  (movie-send-mpv-command '((command . ["seek" -10 "relative" "keyframes"]))))
+  (movie-send-mpv-command '((command . ["seek" -10 "relative" "keyframes"])))
+  (touchgrid--show-progress))
 
 (defun touchgrid--forward-10s ()
-  (movie-send-mpv-command '((command . ["seek" 10 "relative" "keyframes"]))))
+  (movie-send-mpv-command '((command . ["seek" 10 "relative" "keyframes"])))
+  (touchgrid--show-progress))
 
 (defun touchgrid--quit ()
   (movie-send-mpv-command '((command . ["quit"]))))
 
 (defun touchgrid--pause ()
-  (movie-send-mpv-command '((command . ["pause"]))))
+  (movie-send-mpv-command '((command . ["cycle" "pause"]))))
 
 
 (defun touchgrid--play ()
   (touchgrid--emacs-focus)
   (setq touchgrid--state "mpv")
-  (let ((movie-after-play-callback (lambda ()
-				     (setq touchgrid--state "emacs"))))
-    (call-interactively 'movie-play-best-file)))
+  (unwind-protect
+      (let ((movie-after-play-callback (lambda ()
+					 (setq touchgrid--state "emacs"))))
+	(call-interactively 'movie-play-best-file))
+    (setq touchgrid--state "emacs")))
 
 (defun touchgrid--delete ()
   (touchgrid--emacs-focus)
@@ -185,7 +202,7 @@
 		(if touchgrid--rotation
 		    "normal"
 		  "inverted"))
-  (setq touchgrid--rotation (not toucgrid--rotation)))
+  (setq touchgrid--rotation (not touchgrid--rotation)))
 
 (defun touchgrid--emacs-focus ()
   (call-process "xdotool" nil nil nil "windowfocus" (touchgrid--find-emacs)))
