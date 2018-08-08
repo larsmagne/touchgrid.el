@@ -27,15 +27,17 @@
 
 (defvar libinput--process nil)
 (defvar libinput--prev-point nil)
+(defvar libinput--device-map nil)
 (defvar libinput--callback nil)
 
 (defun libinput-start (callback)
   "Start listening for events."
+  (libinput-stop)
   (save-excursion
     (set-buffer (get-buffer-create " *libinput*"))
     (setq-local libinput--prev-point (point-max))
     (setq-local libinput--callback callback)
-    (libinput-stop)
+    (setq-local libinput--device-map (make-hash-table :test #'equal))
     (setq libinput--process
 	  (start-process "libinput" (current-buffer)
 			 "libinput" "debug-events"))
@@ -49,10 +51,11 @@
 
 (defun libinput--filter (process string)
   (let ((lines nil)
-	(callback nil))
+	callback map)
     (save-excursion
       (set-buffer (process-buffer process))
-      (setq callback libinput--callback)
+      (setq callback libinput--callback
+	    map libinput--device-map)
       (goto-char (point-max))
       (insert string)
       (goto-char libinput--prev-point)
@@ -64,11 +67,18 @@
 	(delete-region (point) (point-min)))
       (setq libinput--prev-point (point)))
     (dolist (line (nreverse lines))
-      (save-excursion
-	(condition-case err
-	    (funcall callback (libinput--parse-line line))
-	  (error
-	   (message "Got an error: %s" err)))))))
+      (let ((event (libinput--parse-line line)))
+	;; At startup (or when new devices are added), create a map
+	;; from the physical to logical names.
+	(when (equal (getf event :type) "DEVICE_ADDED")
+	  (setf (gethash (getf event :device-id) map) (getf event :name)))
+	(setf (getf event :device-name)
+	      (gethash (getf event :device-id) map (getf event :device-id)))
+	(save-excursion
+	  (condition-case err
+	      (funcall callback event)
+	    (error
+	     (message "Got an error: %s" err))))))))
 
 (defun libinput--parse-line (line)
   ;; The output is on the form below.  I don't know what the minus
@@ -78,7 +88,7 @@
   (let* ((elem (split-string (substring line 1) "[ \n\t]+" t))
 	 (type (cadr elem)))
     (append
-     (list :device (car elem)
+     (list :device-id (car elem)
 	   :type type)
      (cond
       ((equal type "POINTER_MOTION")
@@ -91,7 +101,14 @@
 	       :y (string-to-number (cadr pos)))))
       ((equal type "SWITCH_TOGGLE")
        (list :switch (nth 4 elem)
-	     :state (nth 6 elem)))))))
+	     :state (nth 6 elem)))
+      ((equal type "DEVICE_ADDED")
+       (list :name (mapconcat
+		    #'identity
+		    (loop for word in (nthcdr 2 elem)
+			  while (not (string-match "\\`seat" word))
+			  collect word)
+		    " ")))))))
 
 (provide 'libinput)
 
