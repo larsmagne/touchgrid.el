@@ -28,7 +28,7 @@
 (require 'svg)
 
 (defvar touchgrid-actions
-  '(("event7"
+  '(("Wacom Pen and multitouch sensor Finger"
      ("emacs"
       (none        none         none  none        play      )
       (none        none         none  none        none      )
@@ -45,7 +45,9 @@
 
 (defvar touchgrid-event-transitions
   '((play "mpv"))
-  "Alist of action/state transitions.")
+  "Alist of action/state transitions.
+These actions make alternative grids active for the duration of
+the command.")
 
 (defvar touchgrid-debug nil
   "If non-nil, output debugging messages.")
@@ -58,20 +60,20 @@
 
 (defvar touchgrid--state "emacs")
 
+(defvar touchgrid--action-number 0)
+(defvar touchgrid--rotation nil)
+
 (defun touchgrid-start ()
   "Start monitoring for touch events."
   (interactive)
   (libinput-start 'touchgrid--handle))
-
-(defvar touchgrid--action-number 0)
-(defvar touchgrid--rotation nil)
 
 (defun touchgrid--handle (event)
   (when touchgrid-debug
     (message "%S" event))
   (when-let ((grid (touchgrid--reorient-grid
 		    (cdr (assoc touchgrid--state
-				(cdr (assoc (getf event :device)
+				(cdr (assoc (getf event :device-name)
 					    touchgrid-actions)))))))
     (when (equal (getf event :type) "TOUCH_DOWN")
       ;; The positions we get are percentages of width/height.
@@ -98,7 +100,7 @@
 	    (funcall (intern (format "touchgrid--%s" action) obarray)))))))
   (dolist (elem touchgrid-other-actions)
     (when (funcall (car elem) event)
-      (funcall (intern (format "touchgrid--%s" (cadr elem)) obarray))))))
+      (funcall (intern (format "touchgrid--%s" (cadr elem)) obarray)))))
 
 (defun touchgrid--call-process (program &optional infile destination display
 					&rest args)
