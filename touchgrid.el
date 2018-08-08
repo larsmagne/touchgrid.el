@@ -2,7 +2,7 @@
 ;; Copyright (C) 2018 Lars Magne Ingebrigtsen
 
 ;; Author: Lars Magne Ingebrigtsen <larsi@gnus.org>
-;; Keywords: wordpress
+;; Keywords: input touch
 
 ;; Touchgrid is free software; you can redistribute it and/or modify it
 ;; under the terms of the GNU General Public License as published by
