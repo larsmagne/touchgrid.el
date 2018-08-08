@@ -32,7 +32,7 @@
 (defun libinput-start (callback)
   "Start listening for events."
   (save-excursion
-    (set-buffer (get-buffer-create "*libinput*"))
+    (set-buffer (get-buffer-create " *libinput*"))
     (setq-local libinput--prev-point (point-max))
     (setq-local libinput--callback callback)
     (libinput-stop)
@@ -57,6 +57,10 @@
       (goto-char libinput--prev-point)
       (while (re-search-forward "^\\(.*\\)\n" nil t)
 	(push (match-string 1) lines))
+      ;; Keep the buffer trimmed.
+      (save-excursion
+	(forward-line -100)
+	(delete-region (point) (point-min)))
       (setq libinput--prev-point (point)))
     (dolist (line (nreverse lines))
       (save-excursion
