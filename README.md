@@ -4,6 +4,10 @@ This Emacs library divides the screen into zones and executed actions
 when those zones are touched.  This is done by parsing the output from
 the libinput tools.
 
+For a video demostration, see this
+https://lars.ingebrigtsen.no/2018/08/07/innovations-in-emacs-touch-interfacing/
+blog post.
+
 ## Getting Started
 
 This isn't a turnkey solution package: It's more of a framework that
