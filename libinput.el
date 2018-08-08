@@ -37,7 +37,8 @@
     (setq-local libinput--callback callback)
     (libinput-stop)
     (setq libinput--process
-	  (start-process "libinput" (current-buffer) "libinput-debug-events"))
+	  (start-process "libinput" (current-buffer)
+			 "libinput" "debug-events"))
     (set-process-filter libinput--process 'libinput--filter)))
 
 (defun libinput-stop ()
