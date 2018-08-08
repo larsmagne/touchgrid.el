@@ -33,14 +33,28 @@
       (none        none         none  none        play      )
       (none        none         none  none        none      )
       (delete      none         none  none        undelete  ) 
-      (grid        none         none  none        rotate     )
+      (grid        none         none  none        rotate    )
       (keyboard    none         none  none        play      ))
      ("mpv"
       (backward-1m backward-10s pause forward-10s forward-1m)
       (backward-1m backward-10s pause forward-10s forward-1m)
       (none        none         quit  none        none      ) 
       (grid        none         pause none        none      )
-      (keyboard    none         pause none        show-progress      )))))
+      (keyboard    none         pause none        show-progress))))
+  "Alist of events/grid states/grids.")
+
+(defvar touchgrid-event-transitions
+  '((play "mpv"))
+  "Alist of action/state transitions.")
+
+(defvar touchgrid-debug nil
+  "If non-nil, output debugging messages.")
+
+(defvar touchgrid-other-actions
+  '(((lambda (event)
+       (and (equal (getf event :type) "SWITCH_TOGGLE")
+	    (equal (getf event :switch) "tablet-mode")))
+     toggle-rotation)))
 
 (defvar touchgrid--state "emacs")
 
@@ -53,7 +67,8 @@
 (defvar touchgrid--rotation nil)
 
 (defun touchgrid--handle (event)
-  ;;(message "%s" event)
+  (when touchgrid-debug
+    (message "%S" event))
   (when-let ((grid (touchgrid--reorient-grid
 		    (cdr (assoc touchgrid--state
 				(cdr (assoc (getf event :device)
@@ -74,15 +89,21 @@
 		  (eq action 'keyboard))
 	  (unless (eq action 'grid)
 	    (touchgrid--remove-grid))
-	  (message "%d: Doing action %s" (incf touchgrid--action-number) action)
-	  (funcall (intern (format "touchgrid--%s" action) obarray))))))
-  (when (and (equal (getf event :type) "SWITCH_TOGGLE")
-	     (equal (getf event :switch) "tablet-mode"))
-    (setq touchgrid--rotation (equal (getf event :state) "0"))
-    (call-process "xrandr" nil nil nil "--output" "eDP-1" "--rotate"
-		  (if touchgrid--rotation
-		      "normal"
-		    "inverted"))))
+	  (when touchgrid-debug
+	    (message "%d: Doing action %s"
+		     (incf touchgrid--action-number) action))
+	  (let ((touchgrid--state
+		 (or (cadr (assq action touchgrid-event-transitions))
+		     touchgrid--state)))
+	    (funcall (intern (format "touchgrid--%s" action) obarray)))))))
+  (dolist (elem touchgrid-other-actions)
+    (when (funcall (car elem) event)
+      (funcall (intern (format "touchgrid--%s" (cadr elem)) obarray))))))
+
+(defun touchgrid--call-process (program &optional infile destination display
+					&rest args)
+  (let ((default-directory "/"))
+    (apply 'call-process program infile destination display args)))
 
 (defvar touchgrid--grid-process nil)
 
@@ -134,8 +155,9 @@
 					  (/ box-height 2.0))))))
 	(svg-print svg)
 	(write-region (point-min) (point-max) "/tmp/grid.svg" nil 'silent))
-      (setq touchgrid--grid-process
-	    (start-process "qiv" nil "qiv" "-p" "/tmp/grid.svg")))))
+      (let ((default-directory "/"))
+	(setq touchgrid--grid-process
+	      (start-process "qiv" nil "qiv" "-p" "/tmp/grid.svg"))))))
 
 (defun touchgrid--reorient-grid (grid)
   (if (not touchgrid--rotation)
@@ -148,10 +170,10 @@
 
 (defun touchgrid--keyboard ()
   (if touchgrid--keyboard
-      (call-process
+      (touchgrid--call-process
        "qdbus" nil nil nil "org.onboard.Onboard"
        "/org/onboard/Onboard/Keyboard" "org.onboard.Onboard.Keyboard.Hide")
-    (call-process
+    (touchgrid--call-process
      "qdbus" nil nil nil "org.onboard.Onboard"
      "/org/onboard/Onboard/Keyboard" "org.onboard.Onboard.Keyboard.Show"))
   (setq touchgrid--keyboard (not touchgrid--keyboard))
@@ -185,12 +207,7 @@
 
 (defun touchgrid--play ()
   (touchgrid--emacs-focus)
-  (setq touchgrid--state "mpv")
-  (unwind-protect
-      (let ((movie-after-play-callback (lambda ()
-					 (setq touchgrid--state "emacs"))))
-	(call-interactively 'movie-play-best-file))
-    (setq touchgrid--state "emacs")))
+  (call-interactively 'movie-play-best-file))
 
 (defun touchgrid--delete ()
   (touchgrid--emacs-focus)
@@ -205,15 +222,24 @@
 
 
 (defun touchgrid--emacs-focus ()
-  (call-process "xdotool" nil nil nil "windowfocus" (touchgrid--find-emacs)))
+  (touchgrid--call-process
+   "xdotool" nil nil nil "windowfocus" (touchgrid--find-emacs)))
 
 (defun touchgrid--find-emacs ()
   (with-temp-buffer
-    (call-process "xdotool" nil (current-buffer) nil
-		  "search" "--name" "emacs")
+    (touchgrid--call-process
+     "xdotool" nil (current-buffer) nil
+     "search" "--name" "emacs")
     (goto-char (point-max))
     (when (re-search-backward "^\\([0-9]+\\)\n" nil t)
       (match-string 1))))
+
+(defun touchgrid--toggle-rotation ()
+  (setq touchgrid--rotation (equal (getf event :state) "1"))
+  (touchgrid--call-process "xrandr" nil nil nil "--output" "eDP-1" "--rotate"
+			   (if (not touchgrid--rotation)
+			       "normal"
+			     "inverted")))
 
 (provide 'touchgrid)
 
