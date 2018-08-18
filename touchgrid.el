@@ -32,7 +32,7 @@
      ("emacs"
       (none        none         none  none        play      )
       (none        none         none  none        none      )
-      (delete      none         none  none        undelete  ) 
+      (delete      none         one-window  none        undelete  ) 
       (grid        none         none  none        rotate    )
       (keyboard    none         none  none        play      ))
      ("mpv"
@@ -211,6 +211,10 @@ the command.")
   (touchgrid--emacs-focus)
   (call-interactively 'movie-play-best-file))
 
+(defun touchgrid--one-window ()
+  (touchgrid--emacs-focus)
+  (delete-other-windows))
+
 (defun touchgrid--delete ()
   (touchgrid--emacs-focus)
   (call-interactively 'movie-delete-file))
@@ -238,7 +242,7 @@ the command.")
 
 (defun touchgrid--toggle-rotation ()
   (setq touchgrid--rotation (equal (getf event :state) "1"))
-  (touchgrid--call-process "xrandr" nil nil nil "--output" "eDP-1" "--rotate"
+  (touchgrid--call-process "xrandr" nil nil nil "--output" "eDP1" "--rotate"
 			   (if (not touchgrid--rotation)
 			       "normal"
 			     "inverted")))
