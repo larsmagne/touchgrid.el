@@ -31,14 +31,14 @@
   '(("Wacom Pen and multitouch sensor Finger"
      ("emacs"
       (none        none         none  none        play      )
-      (none        none         none  none        none      )
+      (none        none         none  none        tv-series      )
       (delete      none         one-window  none        undelete  ) 
       (grid        none         none  none        rotate    )
       (keyboard    none         none  none        play      ))
      ("mpv"
       (backward-1m backward-10s pause forward-10s forward-1m)
-      (backward-1m backward-10s pause forward-10s forward-1m)
-      (none        none         quit  none        none      ) 
+      (dec-sync    dec-volume   pause inc-volume  inc-sync  )
+      (dec-speed   none         quit  none        inc-speed ) 
       (grid        none         pause none        none      )
       (keyboard    none         pause none        show-progress))))
   "Alist of events/grid states/grids.")
@@ -179,7 +179,8 @@ the command.")
      "qdbus" nil nil nil "org.onboard.Onboard"
      "/org/onboard/Onboard/Keyboard" "org.onboard.Onboard.Keyboard.Show"))
   (setq touchgrid--keyboard (not touchgrid--keyboard))
-  (touchgrid--emacs-focus))
+  (when (equal touchgrid--state "emacs")
+    (touchgrid--emacs-focus)))
 
 (defun touchgrid--show-progress ()
   (movie-send-mpv-command '((command . ["show-progress"]))))
@@ -206,6 +207,25 @@ the command.")
 (defun touchgrid--pause ()
   (movie-send-mpv-command '((command . ["cycle" "pause"]))))
 
+(defun touchgrid--inc-volume ()
+  (movie-send-mpv-command '((command . ["add" "volume" "2"]))))
+
+(defun touchgrid--dec-volume ()
+  (movie-send-mpv-command '((command . ["add" "volume" "-2"]))))
+
+(defun touchgrid--inc-sync ()
+  (movie-send-mpv-command '((command . ["add" "audio-delay" "0.100"]))))
+
+(defun touchgrid--dec-sync ()
+  (movie-send-mpv-command '((command . ["add" "audio-delay" "-0.100"]))))
+
+(defun touchgrid--inc-speed ()
+  (movie-send-mpv-command '((command . ["multiply" "speed" "1.1"]))))
+
+(defun touchgrid--dec-speed ()
+  (movie-send-mpv-command '((command . ["multiply" "speed" "1/1.1"]))))
+
+
 
 (defun touchgrid--play ()
   (touchgrid--emacs-focus)
@@ -222,6 +242,10 @@ the command.")
 (defun touchgrid--undelete ()
   (touchgrid--emacs-focus)
   (call-interactively 'movie-undo-delete))
+
+(defun touchgrid--tv-series ()
+  (touchgrid--emacs-focus)
+  (call-interactively 'movie-goto-last-series))
 
 (defun touchgrid--none ()
   )
