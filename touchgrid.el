@@ -27,14 +27,14 @@
 (require 'libinput)
 (require 'svg)
 
-(defvar touchgrid-actions
+(defconst touchgrid-actions
   '(("Wacom Pen and multitouch sensor Finger"
      ("emacs"
-      (none        none         none  none        play      )
-      (none        none         none  none        tv-series      )
-      (delete      none         one-window  none        undelete  ) 
+      (reload      rescan       prev  torrent     play      )
+      (last-seen   none         none  none        tv-series )
+      (delete      none         one-window  none  undelete  ) 
       (grid        none         none  none        rotate    )
-      (keyboard    none         none  none        play      ))
+      (keyboard    none         next  sort        play      ))
      ("mpv"
       (backward-1m backward-10s pause forward-10s forward-1m)
       (dec-sync    dec-volume   pause inc-volume  inc-sync  )
@@ -246,6 +246,37 @@ the command.")
 (defun touchgrid--tv-series ()
   (touchgrid--emacs-focus)
   (call-interactively 'movie-goto-last-series))
+
+(defun touchgrid--last-seen ()
+  (touchgrid--emacs-focus)
+  (call-interactively 'movie-last-seen))
+
+(defun touchgrid--reload ()
+  (touchgrid--emacs-focus)
+  (load "~/src/movie.el/movie.el")
+  (load "~/src/touchgrid.el/touchgrid.el")
+  (message "Reloaded"))
+
+(defun touchgrid--prev ()
+  (touchgrid--emacs-focus)
+  (call-interactively 'scroll-down-command))
+
+(defun touchgrid--next ()
+  (touchgrid--emacs-focus)
+  (call-interactively 'scroll-up-command))
+
+(defun touchgrid--rescan ()
+  (touchgrid--emacs-focus)
+  (call-interactively 'movie-rescan))
+
+(defun touchgrid--sort ()
+  (touchgrid--emacs-focus)
+  (call-interactively 'movie-toggle-sort))
+
+(defun touchgrid--torrent ()
+  (touchgrid--emacs-focus)
+  (call-interactively 'movie-find-torrent))
+
 
 (defun touchgrid--none ()
   )
