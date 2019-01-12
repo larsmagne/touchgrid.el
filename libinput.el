@@ -74,11 +74,10 @@
 	  (setf (gethash (getf event :device-id) map) (getf event :name)))
 	(setf (getf event :device-name)
 	      (gethash (getf event :device-id) map (getf event :device-id)))
-	(save-excursion
-	  (condition-case err
-	      (funcall callback event)
-	    (error
-	     (message "Got an error: %s" err))))))))
+	(condition-case err
+	    (funcall callback event)
+	  (error
+	   (message "Got an error: %s" err)))))))
 
 (defun libinput--parse-line (line)
   ;; The output is on the form below.  I don't know what the minus
