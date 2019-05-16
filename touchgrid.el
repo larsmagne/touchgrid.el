@@ -40,7 +40,7 @@
       (dec-sync    dec-volume   pause inc-volume  inc-sync  )
       (dec-speed   none         quit  none        inc-speed ) 
       (grid        none         pause none        none      )
-      (keyboard    none         pause none        show-progress))))
+      (keyboard    subtitles    pause none        show-progress))))
   "Alist of events/grid states/grids.")
 
 (defvar touchgrid-event-transitions
@@ -224,6 +224,9 @@ the command.")
 
 (defun touchgrid--dec-speed ()
   (movie-send-mpv-command '((command . ["multiply" "speed" "1/1.1"]))))
+
+(defun touchgrid--subtitles ()
+  (movie-send-mpv-command '((command . ["cycle" "sub"]))))
 
 
 
