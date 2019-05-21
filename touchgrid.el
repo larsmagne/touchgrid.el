@@ -39,7 +39,7 @@
       (backward-1m backward-10s pause forward-10s forward-1m)
       (dec-sync    dec-volume   pause inc-volume  inc-sync  )
       (dec-speed   none         quit  none        inc-speed ) 
-      (grid        none         pause none        none      )
+      (grid        none         pause none        audio     )
       (keyboard    subtitles    pause interlace   show-progress))))
   "Alist of events/grid states/grids.")
 
@@ -230,6 +230,9 @@ the command.")
 
 (defun touchgrid--interlace ()
   (movie-send-mpv-command '((command . ["cycle" "deinterlace"]))))
+
+(defun touchgrid--audio ()
+  (movie-send-mpv-command '((command . ["cycle" "audio"]))))
 
 
 
