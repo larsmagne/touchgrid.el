@@ -31,7 +31,7 @@
   '(("Wacom Pen and multitouch sensor Finger"
      ("emacs"
       (reload      enter        prev  torrent     play      )
-      (last-seen   none         none  none        tv-series )
+      (last-seen   play-current none  none        tv-series )
       (delete      none         one-window  none  undelete  ) 
       (grid        none         none  none        rotate    )
       (keyboard    exit         next  sort        play      ))
@@ -293,6 +293,10 @@ the command.")
 (defun touchgrid--torrent ()
   (touchgrid--emacs-focus)
   (call-interactively 'movie-find-torrent))
+
+(defun touchgrid--play-current ()
+  (touchgrid--emacs-focus)
+  (call-interactively 'movie-play-current))
 
 
 (defun touchgrid--none ()
