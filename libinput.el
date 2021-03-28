@@ -23,7 +23,7 @@
 
 ;;; Code:
 
-(require 'cl)
+(require 'cl-lib)
 
 (defvar libinput--process nil)
 (defvar libinput--prev-point nil)
@@ -104,9 +104,9 @@
       ((equal type "DEVICE_ADDED")
        (list :name (mapconcat
 		    #'identity
-		    (loop for word in (nthcdr 2 elem)
-			  while (not (string-match "\\`seat" word))
-			  collect word)
+		    (cl-loop for word in (nthcdr 2 elem)
+			     while (not (string-match "\\`seat" word))
+			     collect word)
 		    " ")))))))
 
 (provide 'libinput)
