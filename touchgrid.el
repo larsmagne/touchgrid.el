@@ -23,7 +23,7 @@
 
 ;;; Code:
 
-(require 'cl)
+(require 'cl-lib)
 (require 'libinput)
 (require 'svg)
 
@@ -93,7 +93,7 @@ the command.")
 	    (touchgrid--remove-grid))
 	  (when touchgrid-debug
 	    (message "%d: Doing action %s"
-		     (incf touchgrid--action-number) action))
+		     (cl-incf touchgrid--action-number) action))
 	  (let ((touchgrid--state
 		 (or (cadr (assq action touchgrid-event-transitions))
 		     touchgrid--state)))
@@ -129,32 +129,33 @@ the command.")
 	     (svg (svg-create width height)))
 	(svg-rectangle svg 0 0 width height :fill "none"
 		       :fill-opacity "0.5")
-	(loop for y from 0 upto (length grid)
-	      do (svg-line svg 0 (* y box-height) width (* y box-height)
-			   :stroke-color "black"
-			   :stroke-width "2px"))
-	(loop for x from 0 upto (length (car grid))
-	      do (svg-line svg (* x box-width) 0 (* x box-width) height
-			   :stroke-color "black"
-			   :stroke-width "2px"))
-	(loop for (stroke color) in '((10 "#202020")
-				      (5 "black")
-				      (0 "white"))
-	      do (loop for y from 0 upto (1- (length grid))
-		       do (loop for x from 0 upto (1- (length (car grid)))
-				for action = (elt (elt grid y) x)
-				do (svg-text
-				    svg (if (eq action 'none)
-					    ""
-					  (symbol-name action))
-				    :text-anchor "middle"
-				    :font-size 50
-				    :stroke-width stroke
-				    :stroke color
-				    :fill color
-				    :x (+ (* box-width x) (/ box-width 2.0))
-				    :y (+ (* box-height y)
-					  (/ box-height 2.0))))))
+	(cl-loop for y from 0 upto (length grid)
+		 do (svg-line svg 0 (* y box-height) width (* y box-height)
+			      :stroke-color "black"
+			      :stroke-width "2px"))
+	(cl-loop for x from 0 upto (length (car grid))
+		 do (svg-line svg (* x box-width) 0 (* x box-width) height
+			      :stroke-color "black"
+			      :stroke-width "2px"))
+	(cl-loop for (stroke color) in '((10 "#202020")
+					 (5 "black")
+					 (0 "white"))
+		 do (cl-loop
+		     for y from 0 upto (1- (length grid))
+		     do (cl-loop for x from 0 upto (1- (length (car grid)))
+				 for action = (elt (elt grid y) x)
+				 do (svg-text
+				     svg (if (eq action 'none)
+					     ""
+					   (symbol-name action))
+				     :text-anchor "middle"
+				     :font-size 50
+				     :stroke-width stroke
+				     :stroke color
+				     :fill color
+				     :x (+ (* box-width x) (/ box-width 2.0))
+				     :y (+ (* box-height y)
+					   (/ box-height 2.0))))))
 	(svg-print svg)
 	(write-region (point-min) (point-max) "/tmp/grid.svg" nil 'silent))
       (let ((default-directory "/"))
@@ -164,9 +165,9 @@ the command.")
 (defun touchgrid--reorient-grid (grid)
   (if (not touchgrid--rotation)
       grid
-    (loop for line in (reverse grid)
-	  collect (loop for elem in (reverse line)
-			collect elem))))
+    (cl-loop for line in (reverse grid)
+	     collect (cl-loop for elem in (reverse line)
+			      collect elem))))
 
 (defvar touchgrid--keyboard nil)
 
