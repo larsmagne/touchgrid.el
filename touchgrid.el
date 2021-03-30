@@ -30,10 +30,10 @@
 (defconst touchgrid-actions
   '(("Wacom Pen and multitouch sensor Finger"
      ("emacs"
-      (reload      enter        prev  torrent     play      )
-      (last-seen   play-current none  none        tv-series )
+      (reload      enter        prev  torrent     play-current )
+      (last-seen   none         none  none        tv-series )
       (delete      none         one-window  none  undelete  ) 
-      (grid        none         none  none        rotate    )
+      (grid        none         none  none        none      )
       (keyboard    exit         next  sort        play      ))
      ("mpv"
       (backward-1m backward-10s pause forward-10s forward-1m)
