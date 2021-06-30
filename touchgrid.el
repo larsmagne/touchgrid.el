@@ -297,7 +297,8 @@ the command.")
 
 (defun touchgrid--play-current ()
   (touchgrid--emacs-focus)
-  (call-interactively 'movie-play-current))
+  (call-interactively 'movie-play-current)
+  (touchgrid--emacs-focus))
 
 
 (defun touchgrid--none ()
