@@ -66,6 +66,7 @@ the command.")
 (defun touchgrid-start ()
   "Start monitoring for touch events."
   (interactive)
+  (server-start)
   (libinput-start 'touchgrid--handle))
 
 (defun touchgrid--handle (event)
@@ -181,7 +182,7 @@ the command.")
      "/org/onboard/Onboard/Keyboard" "org.onboard.Onboard.Keyboard.Show"))
   (setq touchgrid--keyboard (not touchgrid--keyboard))
   (when (equal touchgrid--state "emacs")
-    (touchgrid--emacs-focus)))
+    (run-at-time 0.1 nil #'touchgrid--emacs-focus)))
 
 (defun touchgrid--show-progress ()
   (movie-send-mpv-command '((command . ["show-progress"]))))
@@ -313,7 +314,8 @@ the command.")
   (with-temp-buffer
     (touchgrid--call-process
      "xdotool" nil (current-buffer) nil
-     "search" "--name" "emacs")
+     "search" "--onlyvisible" "--name" "emacs")
+    (write-region (point-min) (point-max) "/tmp/find" nil 'silent)
     (goto-char (point-max))
     (when (re-search-backward "^\\([0-9]+\\)\n" nil t)
       (match-string 1))))
