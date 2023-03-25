@@ -28,7 +28,7 @@
 (require 'svg)
 
 (defconst touchgrid-actions
-  '(("Wacom Pen and multitouch sensor Finger"
+  '(("Wacom HID 52B5 Finger"
      ("emacs"
       (reload      enter        prev  torrent     play-current )
       (last-seen   none         none  none        tv-series )
@@ -133,11 +133,11 @@ the command.")
 	(cl-loop for y from 0 upto (length grid)
 		 do (svg-line svg 0 (* y box-height) width (* y box-height)
 			      :stroke-color "black"
-			      :stroke-width "2px"))
+			      :stroke-width "4px"))
 	(cl-loop for x from 0 upto (length (car grid))
 		 do (svg-line svg (* x box-width) 0 (* x box-width) height
 			      :stroke-color "black"
-			      :stroke-width "2px"))
+			      :stroke-width "4px"))
 	(cl-loop for (stroke color) in '((10 "#202020")
 					 (5 "black")
 					 (0 "white"))
@@ -150,7 +150,7 @@ the command.")
 					     ""
 					   (symbol-name action))
 				     :text-anchor "middle"
-				     :font-size 50
+				     :font-size 100
 				     :stroke-width stroke
 				     :stroke color
 				     :fill color
@@ -300,6 +300,10 @@ the command.")
   (touchgrid--emacs-focus)
   (call-interactively 'movie-play-current)
   (touchgrid--emacs-focus))
+
+(defun touchgrid--jump ()
+  (touchgrid--emacs-focus)
+  (call-interactively 'movie-jump-to-directory))
 
 
 (defun touchgrid--none ()
