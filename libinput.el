@@ -41,7 +41,8 @@
     (setq libinput--process
 	  (start-process "libinput" (current-buffer)
 			 "libinput" "debug-events"))
-    (set-process-filter libinput--process 'libinput--filter)))
+    (set-process-filter libinput--process 'libinput--filter)
+    (set-process-query-on-exit-flag libinput--process nil)))
 
 (defun libinput-stop ()
   "Stop libinput."
