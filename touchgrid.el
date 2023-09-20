@@ -21,6 +21,9 @@
 
 ;;; Commentary:
 
+;; apt install libinput-tools xdotool qdbus qiv onboard
+;; adduser larsi input
+
 ;;; Code:
 
 (require 'cl-lib)
@@ -326,7 +329,7 @@ the command.")
 
 (defun touchgrid--toggle-rotation ()
   (setq touchgrid--rotation (equal (getf event :state) "1"))
-  (touchgrid--call-process "xrandr" nil nil nil "--output" "eDP1" "--rotate"
+  (touchgrid--call-process "xrandr" nil nil nil "--output" "eDP-1" "--rotate"
 			   (if (not touchgrid--rotation)
 			       "normal"
 			     "inverted")))
