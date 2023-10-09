@@ -329,7 +329,7 @@ the command.")
 
 (defun touchgrid--toggle-rotation ()
   (setq touchgrid--rotation (equal (getf event :state) "1"))
-  (touchgrid--call-process "xrandr" nil nil nil "--output" "eDP-1" "--rotate"
+  (touchgrid--call-process "xrandr" nil nil nil "--output" "eDP1" "--rotate"
 			   (if (not touchgrid--rotation)
 			       "normal"
 			     "inverted")))
