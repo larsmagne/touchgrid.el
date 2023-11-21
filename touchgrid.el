@@ -31,7 +31,7 @@
 (require 'svg)
 
 (defconst touchgrid-actions
-  '(("Wacom HID 52B5 Finger"
+  '(("Wacom Pen and multitouch sensor Finger"
      ("emacs"
       (reload      enter        prev  torrent     play-current )
       (last-seen   none         none  none        tv-series )
@@ -327,9 +327,18 @@ the command.")
     (when (re-search-backward "^\\([0-9]+\\)\n" nil t)
       (match-string 1))))
 
+(defun touchgrid--display-name ()
+  (with-temp-buffer
+    (call-process "xrandr" nil t)
+    (goto-char (point-min))
+    (when (re-search-forward "^\\([^ ]+\\).*connected primary" nil t)
+      (match-string 1))))
+
 (defun touchgrid--toggle-rotation ()
   (setq touchgrid--rotation (equal (getf event :state) "1"))
-  (touchgrid--call-process "xrandr" nil nil nil "--output" "eDP1" "--rotate"
+  (touchgrid--call-process "xrandr" nil nil nil
+			   "--output" (touchgrid--display-name)
+			   "--rotate"
 			   (if (not touchgrid--rotation)
 			       "normal"
 			     "inverted")))
