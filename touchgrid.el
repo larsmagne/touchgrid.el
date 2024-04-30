@@ -31,7 +31,7 @@
 (require 'svg)
 
 (defconst touchgrid-actions
-  '(("Wacom Pen and multitouch sensor Finger"
+  '(("Wacom HID 5344 Finger"
      ("emacs"
       (reload      enter        prev  torrent     play-current )
       (last-seen   none         none  none        tv-series )
@@ -336,12 +336,14 @@ the command.")
 
 (defun touchgrid--toggle-rotation ()
   (setq touchgrid--rotation (equal (getf event :state) "1"))
-  (touchgrid--call-process "xrandr" nil nil nil
-			   "--output" (touchgrid--display-name)
-			   "--rotate"
-			   (if (not touchgrid--rotation)
-			       "normal"
-			     "inverted")))
+  (touchgrid--call-process
+   "/home/larsi/src/gnome-randr-rust/target/debug/gnome-randr"
+   nil nil nil
+   "modify" "eDP-1"
+   "--rotate"
+   (if (not touchgrid--rotation)
+       "normal"
+     "inverted")))
 
 (provide 'touchgrid)
 
