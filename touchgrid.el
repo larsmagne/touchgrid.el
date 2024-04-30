@@ -52,14 +52,22 @@
 These actions make alternative grids active for the duration of
 the command.")
 
-(defvar touchgrid-debug nil
+(defvar touchgrid-debug t
   "If non-nil, output debugging messages.")
 
 (defvar touchgrid-other-actions
-  '(((lambda (event)
+  '(
+    ;; Toggle rotation when the screen is upside down (because the
+    ;; Yoga is flipped over).
+    ((lambda (event)
        (and (equal (getf event :type) "SWITCH_TOGGLE")
 	    (equal (getf event :switch) "tablet-mode")))
-     toggle-rotation)))
+     toggle-rotation)
+    ;; Wake up xscreensaver when the user hits a key.  (xscreensaver
+    ;; under Wayland seems to only wake up on mouse actions?)
+    ((lambda (event)
+       (equal (getf event :type) "KEYBOARD_KEY"))
+     wake-up)))
 
 (defvar touchgrid--state "emacs")
 
@@ -104,7 +112,8 @@ the command.")
 	    (funcall (intern (format "touchgrid--%s" action) obarray)))))))
   (dolist (elem touchgrid-other-actions)
     (when (funcall (car elem) event)
-      (funcall (intern (format "touchgrid--%s" (cadr elem)) obarray)))))
+      (funcall (intern (format "touchgrid--%s" (cadr elem)) obarray)
+	       event))))
 
 (defun touchgrid--call-process (program &optional infile destination display
 					&rest args)
@@ -334,7 +343,7 @@ the command.")
     (when (re-search-forward "^\\([^ ]+\\).*connected primary" nil t)
       (match-string 1))))
 
-(defun touchgrid--toggle-rotation ()
+(defun touchgrid--toggle-rotation (event)
   (setq touchgrid--rotation (equal (getf event :state) "1"))
   (touchgrid--call-process
    "/home/larsi/src/gnome-randr-rust/target/debug/gnome-randr"
@@ -344,6 +353,12 @@ the command.")
    (if (not touchgrid--rotation)
        "normal"
      "inverted")))
+
+(defun touchgrid--wake-up (_event)
+  (touchgrid--call-process
+   "xscreensaver-command"
+   nil nil nil
+   "-deactivate"))
 
 (provide 'touchgrid)
 
