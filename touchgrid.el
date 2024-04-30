@@ -1,5 +1,5 @@
-;;; touchgrid.el --- Executing actions based on input events
-;; Copyright (C) 2018 Lars Magne Ingebrigtsen
+;;; touchgrid.el --- Executing actions based on input events  -*- lexical-binding: t -*-
+;; Copyright (C) 2018-2024 Lars Magne Ingebrigtsen
 
 ;; Author: Lars Magne Ingebrigtsen <larsi@gnus.org>
 ;; Keywords: input touch
@@ -60,13 +60,13 @@ the command.")
     ;; Toggle rotation when the screen is upside down (because the
     ;; Yoga is flipped over).
     ((lambda (event)
-       (and (equal (getf event :type) "SWITCH_TOGGLE")
-	    (equal (getf event :switch) "tablet-mode")))
+       (and (equal (cl-getf event :type) "SWITCH_TOGGLE")
+	    (equal (cl-getf event :switch) "tablet-mode")))
      toggle-rotation)
     ;; Wake up xscreensaver when the user hits a key.  (xscreensaver
     ;; under Wayland seems to only wake up on mouse actions?)
     ((lambda (event)
-       (equal (getf event :type) "KEYBOARD_KEY"))
+       (equal (cl-getf event :type) "KEYBOARD_KEY"))
      wake-up)))
 
 (defvar touchgrid--state "emacs")
@@ -85,18 +85,18 @@ the command.")
     (message "%S" event))
   (when-let ((grid (touchgrid--reorient-grid
 		    (cdr (assoc touchgrid--state
-				(cdr (assoc (getf event :device-name)
+				(cdr (assoc (cl-getf event :device-name)
 					    touchgrid-actions)))))))
-    (when (equal (getf event :type) "TOUCH_DOWN")
+    (when (equal (cl-getf event :type) "TOUCH_DOWN")
       ;; The positions we get are percentages of width/height.
       (let* ((width (display-pixel-width))
 	     (height (display-pixel-height))
 	     (box-width (/ width (length (car grid))))
 	     (box-height (/ height (length grid)))
 	     (action (elt (elt grid (truncate
-				     (/ (* (/ (getf event :y) 100.0) height)
+				     (/ (* (/ (cl-getf event :y) 100.0) height)
 					box-height)))
-			  (truncate (/ (* (/ (getf event :x) 100.0) width)
+			  (truncate (/ (* (/ (cl-getf event :x) 100.0) width)
 				       box-width)))))
 	;; Disable all other commands when the keyboard is active.
 	(when (or (not touchgrid--keyboard)
@@ -344,7 +344,7 @@ the command.")
       (match-string 1))))
 
 (defun touchgrid--toggle-rotation (event)
-  (setq touchgrid--rotation (equal (getf event :state) "1"))
+  (setq touchgrid--rotation (equal (cl-getf event :state) "1"))
   (touchgrid--call-process
    "/home/larsi/src/gnome-randr-rust/target/debug/gnome-randr"
    nil nil nil
