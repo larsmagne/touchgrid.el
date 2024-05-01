@@ -43,8 +43,14 @@
       (none none none none k< k> kup kdown none none none none)
       (k1 k2 k3 k4 k5 k6 k7 k8 k9 k0 k- k= none)
       (kq kw ke kr kt ky ku ki ko kp k{ k} k|)
-      (none ka ks kd kf kg kh kj kk kl k\; k: kret)
+      (kshift ka ks kd kf kg kh kj kk kl k\; k\' kret)
       (kexit kz kx kc kv kb kn km k\, k. k/ none))
+     ("keyboard-shift"
+      (none none none none k< k> kup kdown none none none none)
+      (k! k@ k\# k$ k% k^ k& k* k\( k\) k_ k+ none)
+      (kQ kW kE kR kT kY kU kI kO kP k\[ k\] k\\)
+      (kshift kA kS kD kF kG kH kJ kK kL k: k\" kret)
+      (kexit kZ kX kC kV kB kN kM k< k> k? none))     
      ("mpv"
       (backward-1m backward-10s pause forward-10s forward-1m)
       (dec-sync    dec-volume   pause inc-volume  inc-sync  )
@@ -109,7 +115,7 @@
 		   (truncate (/ (* (/ (cl-getf event :x) 100.0) width)
 				box-width)))))
 	;; Disable all other commands when the keyboard is active.
-	(if (equal touchgrid--state "keyboard")
+	(if (touchgrid--keyboard-p)
 	    (touchgrid--handle-keyboard action)
 	  (unless (eq action 'grid)
 	    (touchgrid--remove-grid))
@@ -135,9 +141,13 @@
     (when (file-exists-p "/tmp/grid.svg")
       (delete-file "/tmp/grid.svg"))))
 
+(defun touchgrid--keyboard-p ()
+  (or (equal touchgrid--state "keyboard")
+      (equal touchgrid--state "keyboard-shift")))
+
 (defun touchgrid--height ()
   (let ((height (display-pixel-height)))
-    (if (equal touchgrid--state "keyboard")
+    (if (touchgrid--keyboard-p)
 	(truncate (/ height 2.4))
       height)))
 
@@ -178,12 +188,14 @@
 				     svg (cond
 					  ((eq action 'none)
 					   "")
-					  ((equal touchgrid--state "keyboard")
+					  ((touchgrid--keyboard-p)
 					   (substring (symbol-name action) 1))
 					  (t
 					   (symbol-name action)))
 				     :text-anchor "middle"
 				     :font-size 100
+				     :font-family "futura"
+				     :font-weight "bold"
 				     :stroke-width stroke
 				     :stroke color
 				     :fill color
@@ -403,25 +415,36 @@
 (defun touchgrid--handle-keyboard (action)
   (touchgrid--focus touchgrid--pre-keyboard-state)
   (with-suppressed-warnings ((interactive-only previous-line next-line))
-    (pcase (substring (symbol-name action) 1)
-      ("exit"
-       (touchgrid--remove-grid)
-       (setq touchgrid--state touchgrid--pre-keyboard-state))
-      ("one")
-      ("<"
-       (left-char))
-      (">"
-       (right-char))
-      ("up"
-       (previous-line))
-      ("down"
-       (next-line))
-      (_
-       (let ((char (string (elt (symbol-name action) 1))))
-	 (if (equal touchgrid--pre-keyboard-state "emacs")
-	     (setq unread-command-events
-		   (append unread-command-events (listify-key-sequence char)))
-	   (touchgrid--execute-mpv-key char)))))))
+    (let ((prev touchgrid--state))
+      (setq action (substring (symbol-name action) 1))
+      (pcase action
+	("exit"
+	 (touchgrid--remove-grid)
+	 (setq touchgrid--state touchgrid--pre-keyboard-state))
+	("one")
+	("shift"
+	 (setq touchgrid--state "keyboard-shift")
+	 (touchgrid--remove-grid)
+	 (touchgrid--grid))
+	("<"
+	 (left-char))
+	(">"
+	 (right-char))
+	("up"
+	 (previous-line))
+	("down"
+	 (next-line))
+	(_
+	 (let ((char (string (elt action 0))))
+	   (if (equal touchgrid--pre-keyboard-state "emacs")
+	       (setq unread-command-events
+		     (append unread-command-events (listify-key-sequence char)))
+	     (touchgrid--execute-mpv-key char)))))
+      (when (and (equal prev "keyboard-shift")
+		 (not (equal action "exit")))
+        (setq touchgrid--state "keyboard")
+	(touchgrid--remove-grid)
+	(touchgrid--grid)))))
 
 (defun touchgrid--execute-mpv-key (char)
   (let ((table (make-hash-table :test #'equal)))
