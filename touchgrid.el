@@ -21,7 +21,8 @@
 
 ;;; Commentary:
 
-;; apt install libinput-tools xdotool qdbus qiv onboard
+;; apt install libinput-tools xdotool qiv
+;; apt build-dep qiv
 ;; adduser larsi input
 
 ;;; Code:
@@ -198,7 +199,14 @@
       (let ((default-directory "/"))
 	(setq touchgrid--grid-process
 	      (start-process "qiv" nil
-			     "qiv" "-p" "-f" "/tmp/grid.svg"))))))
+			     "~/src/qiv/qiv" "-p" "-f" "-i"
+			     "/tmp/grid.svg"))
+	(when t
+	  (run-at-time 0.5 nil
+		       (lambda ()
+			 (start-process
+			  "wmcrtl" nil
+			  "wmctrl" "-r" "qiv" "-b" "add,above"))))))))
 
 (defun touchgrid--reorient-grid (grid)
   (if (not touchgrid--rotation)
@@ -263,10 +271,12 @@
 
 (defun touchgrid--play ()
   (touchgrid--emacs-focus)
+  (touchgrid--remove-grid)
   (setq touchgrid--state "mpv")
   (unwind-protect
       (call-interactively 'movie-play-best-file)
-    (setq touchgrid--state "emacs")))
+    (setq touchgrid--state "emacs")
+    (touchgrid--remove-grid)))
 
 (defun touchgrid--one-window ()
   (touchgrid--emacs-focus)
@@ -335,17 +345,19 @@
 (defun touchgrid--none ()
   )
 
-
 (defun touchgrid--emacs-focus ()
-  (when-let ((id (touchgrid--find-emacs)))
-    (touchgrid--call-process
-     "xdotool" nil nil nil "windowfocus" id)))
+  (touchgrid--focus "emacs"))
 
-(defun touchgrid--find-emacs ()
+(defun touchgrid--focus (string)
+  (when-let ((id (touchgrid--find-window string)))
+    (touchgrid--call-process
+     "xdotool" nil nil nil "windowfocus" "--sync" id)))
+
+(defun touchgrid--find-window (string)
   (with-temp-buffer
     (touchgrid--call-process
      "xdotool" nil (current-buffer) nil
-     "search" "--onlyvisible" "--name" "emacs")
+     "search" "--onlyvisible" "--name" string)
     ;;(write-region (point-min) (point-max) "/tmp/find" nil 'silent)
     (goto-char (point-max))
     (when (re-search-backward "^\\([0-9]+\\)\n" nil t)
@@ -389,7 +401,7 @@
   (touchgrid--grid))
 
 (defun touchgrid--handle-keyboard (action)
-  (touchgrid--emacs-focus)
+  (touchgrid--focus touchgrid--pre-keyboard-state)
   (with-suppressed-warnings ((interactive-only previous-line next-line))
     (pcase (substring (symbol-name action) 1)
       ("exit"
@@ -405,9 +417,37 @@
       ("down"
        (next-line))
       (_
-       (setq unread-command-events
-	     (listify-key-sequence
-	      (string (elt (symbol-name action) 1))))))))
+       (let ((char (string (elt (symbol-name action) 1))))
+	 (if (equal touchgrid--pre-keyboard-state "emacs")
+	     (setq unread-command-events
+		   (append unread-command-events (listify-key-sequence char)))
+	   (touchgrid--execute-mpv-key char)))))))
+
+(defun touchgrid--execute-mpv-key (char)
+  (let ((table (make-hash-table :test #'equal)))
+    (touchgrid--parse-mpv-file table "~/.config/mpv/full-input.conf")
+    (touchgrid--parse-mpv-file table "~/.config/mpv/input.conf")
+    (when-let ((command (gethash char table)))
+      (movie-send-mpv-command
+       `((command . ,(cl-coerce (mapcar (lambda (c)
+					  (if (string-match "^[-.0-9]+$" c)
+					      (string-to-number c)
+					    (intern c)))
+					command)
+				'array)))))))
+
+(defun touchgrid--parse-mpv-file (table file)
+  (with-temp-buffer
+    (insert-file-contents file)
+    (while (not (eobp))
+      (when (looking-at "#?\\([^ ]\\) \\(.*\\)")
+	(let ((key (match-string 1))
+	      (command (match-string 2)))
+	  (setq command (replace-regexp-in-string "#.*" "" command))
+	  (setq command (replace-regexp-in-string "{encode}" "" command))
+	  (setq command (split-string (string-trim command)))
+	  (setf (gethash key table) command)))
+      (forward-line 1))))
 
 (provide 'touchgrid)
 
