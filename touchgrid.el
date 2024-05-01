@@ -38,6 +38,12 @@
       (delete      none         one-window  none  undelete  ) 
       (grid        none         none  none        none      )
       (keyboard    exit         next  sort        play      ))
+     ("keyboard"
+      (none none none none k< k> kup kdown none none none none)
+      (k1 k2 k3 k4 k5 k6 k7 k8 k9 k0 k- k= none)
+      (kq kw ke kr kt ky ku ki ko kp k{ k} k|)
+      (none ka ks kd kf kg kh kj kk kl k\; k: kret)
+      (kexit kz kx kc kv kb kn km k\, k. k/ none))
      ("mpv"
       (backward-1m backward-10s pause forward-10s forward-1m)
       (dec-sync    dec-volume   pause inc-volume  inc-sync  )
@@ -46,13 +52,11 @@
       (keyboard    subtitles    pause interlace   show-progress))))
   "Alist of events/grid states/grids.")
 
-(defvar touchgrid-event-transitions
-  '((play "mpv"))
-  "Alist of action/state transitions.
-These actions make alternative grids active for the duration of
-the command.")
+(keymap-global-set "<touchscreen-begin>" 'ignore)
+(keymap-global-set "<touchscreen-update>" 'ignore)
+(keymap-global-set "<touchscreen-end>" 'ignore)
 
-(defvar touchgrid-debug t
+(defvar touchgrid-debug nil
   "If non-nil, output debugging messages.")
 
 (defvar touchgrid-other-actions
@@ -82,7 +86,7 @@ the command.")
 
 (defun touchgrid--handle (event)
   (when touchgrid-debug
-    (message "%S" event))
+    (message "%S" touchgrid--state))
   (when-let ((grid (touchgrid--reorient-grid
 		    (cdr (assoc touchgrid--state
 				(cdr (assoc (cl-getf event :device-name)
@@ -90,26 +94,28 @@ the command.")
     (when (equal (cl-getf event :type) "TOUCH_DOWN")
       ;; The positions we get are percentages of width/height.
       (let* ((width (display-pixel-width))
-	     (height (display-pixel-height))
+	     (height (touchgrid--height))
+	     (offset (- (display-pixel-height) height))
 	     (box-width (/ width (length (car grid))))
 	     (box-height (/ height (length grid)))
-	     (action (elt (elt grid (truncate
-				     (/ (* (/ (cl-getf event :y) 100.0) height)
-					box-height)))
-			  (truncate (/ (* (/ (cl-getf event :x) 100.0) width)
-				       box-width)))))
+	     (action
+	      (elt (elt grid
+			(truncate
+			 (/ (- (* (/ (cl-getf event :y) 100.0)
+				  (display-pixel-height))
+			       offset)
+			    box-height)))
+		   (truncate (/ (* (/ (cl-getf event :x) 100.0) width)
+				box-width)))))
 	;; Disable all other commands when the keyboard is active.
-	(when (or (not touchgrid--keyboard)
-		  (eq action 'keyboard))
+	(if (equal touchgrid--state "keyboard")
+	    (touchgrid--handle-keyboard action)
 	  (unless (eq action 'grid)
 	    (touchgrid--remove-grid))
 	  (when touchgrid-debug
 	    (message "%d: Doing action %s"
 		     (cl-incf touchgrid--action-number) action))
-	  (let ((touchgrid--state
-		 (or (cadr (assq action touchgrid-event-transitions))
-		     touchgrid--state)))
-	    (funcall (intern (format "touchgrid--%s" action) obarray)))))))
+	  (funcall (intern (format "touchgrid--%s" action) obarray))))))
   (dolist (elem touchgrid-other-actions)
     (when (funcall (car elem) event)
       (funcall (intern (format "touchgrid--%s" (cadr elem)) obarray)
@@ -128,6 +134,12 @@ the command.")
     (when (file-exists-p "/tmp/grid.svg")
       (delete-file "/tmp/grid.svg"))))
 
+(defun touchgrid--height ()
+  (let ((height (display-pixel-height)))
+    (if (equal touchgrid--state "keyboard")
+	(truncate (/ height 2.4))
+      height)))
+
 (defun touchgrid--grid ()
   (if (process-live-p touchgrid--grid-process)
       (progn
@@ -135,19 +147,23 @@ the command.")
 	(touchgrid--emacs-focus))
     (with-temp-buffer
       (let* ((width (display-pixel-width))
-	     (height (display-pixel-height))
+	     (height (touchgrid--height))
+	     (offset (- (display-pixel-height) height))
 	     (grid (cdr (assoc touchgrid--state (cdar touchgrid-actions))))
 	     (box-width (/ width (length (car grid))))
 	     (box-height (/ height (length grid)))
-	     (svg (svg-create width height)))
-	(svg-rectangle svg 0 0 width height :fill "none"
+	     (svg (svg-create width (display-pixel-height))))
+	(svg-rectangle svg 0 0 width (display-pixel-height)
+		       :fill "none"
 		       :fill-opacity "0.5")
 	(cl-loop for y from 0 upto (length grid)
-		 do (svg-line svg 0 (* y box-height) width (* y box-height)
+		 do (svg-line svg 0 (+ offset (* y box-height))
+			      width (+ offset (* y box-height))
 			      :stroke-color "black"
 			      :stroke-width "4px"))
 	(cl-loop for x from 0 upto (length (car grid))
-		 do (svg-line svg (* x box-width) 0 (* x box-width) height
+		 do (svg-line svg (* x box-width) offset
+			      (* x box-width) (+ offset height)
 			      :stroke-color "black"
 			      :stroke-width "4px"))
 	(cl-loop for (stroke color) in '((10 "#202020")
@@ -158,22 +174,31 @@ the command.")
 		     do (cl-loop for x from 0 upto (1- (length (car grid)))
 				 for action = (elt (elt grid y) x)
 				 do (svg-text
-				     svg (if (eq action 'none)
-					     ""
-					   (symbol-name action))
+				     svg (cond
+					  ((eq action 'none)
+					   "")
+					  ((equal touchgrid--state "keyboard")
+					   (substring (symbol-name action) 1))
+					  (t
+					   (symbol-name action)))
 				     :text-anchor "middle"
 				     :font-size 100
 				     :stroke-width stroke
 				     :stroke color
 				     :fill color
 				     :x (+ (* box-width x) (/ box-width 2.0))
-				     :y (+ (* box-height y)
+				     :y (+ offset
+					   ;; Make the text appear in
+					   ;; the middle.
+					   (truncate (* 100 0.3))
+					   (* box-height y)
 					   (/ box-height 2.0))))))
 	(svg-print svg)
 	(write-region (point-min) (point-max) "/tmp/grid.svg" nil 'silent))
       (let ((default-directory "/"))
 	(setq touchgrid--grid-process
-	      (start-process "qiv" nil "qiv" "-p" "/tmp/grid.svg"))))))
+	      (start-process "qiv" nil
+			     "qiv" "-p" "-f" "/tmp/grid.svg"))))))
 
 (defun touchgrid--reorient-grid (grid)
   (if (not touchgrid--rotation)
@@ -181,20 +206,6 @@ the command.")
     (cl-loop for line in (reverse grid)
 	     collect (cl-loop for elem in (reverse line)
 			      collect elem))))
-
-(defvar touchgrid--keyboard nil)
-
-(defun touchgrid--keyboard ()
-  (if touchgrid--keyboard
-      (touchgrid--call-process
-       "qdbus" nil nil nil "org.onboard.Onboard"
-       "/org/onboard/Onboard/Keyboard" "org.onboard.Onboard.Keyboard.Hide")
-    (touchgrid--call-process
-     "qdbus" nil nil nil "org.onboard.Onboard"
-     "/org/onboard/Onboard/Keyboard" "org.onboard.Onboard.Keyboard.Show"))
-  (setq touchgrid--keyboard (not touchgrid--keyboard))
-  (when (equal touchgrid--state "emacs")
-    (run-at-time 0.1 nil #'touchgrid--emacs-focus)))
 
 (defun touchgrid--show-progress ()
   (movie-send-mpv-command '((command . ["show-progress"]))))
@@ -252,7 +263,10 @@ the command.")
 
 (defun touchgrid--play ()
   (touchgrid--emacs-focus)
-  (call-interactively 'movie-play-best-file))
+  (setq touchgrid--state "mpv")
+  (unwind-protect
+      (call-interactively 'movie-play-best-file)
+    (setq touchgrid--state "emacs")))
 
 (defun touchgrid--one-window ()
   (touchgrid--emacs-focus)
@@ -323,15 +337,16 @@ the command.")
 
 
 (defun touchgrid--emacs-focus ()
-  (touchgrid--call-process
-   "xdotool" nil nil nil "windowfocus" (touchgrid--find-emacs)))
+  (when-let ((id (touchgrid--find-emacs)))
+    (touchgrid--call-process
+     "xdotool" nil nil nil "windowfocus" id)))
 
 (defun touchgrid--find-emacs ()
   (with-temp-buffer
     (touchgrid--call-process
      "xdotool" nil (current-buffer) nil
      "search" "--onlyvisible" "--name" "emacs")
-    (write-region (point-min) (point-max) "/tmp/find" nil 'silent)
+    ;;(write-region (point-min) (point-max) "/tmp/find" nil 'silent)
     (goto-char (point-max))
     (when (re-search-backward "^\\([0-9]+\\)\n" nil t)
       (match-string 1))))
@@ -354,11 +369,45 @@ the command.")
        "normal"
      "inverted")))
 
+(defvar touchgrid--last-keyboard 0)
+
 (defun touchgrid--wake-up (_event)
-  (touchgrid--call-process
-   "xscreensaver-command"
-   nil nil nil
-   "-deactivate"))
+  (let ((time (float-time)))
+    ;; If it's been more than a minute since last time, deactivate
+    ;; xscreensaver.
+    (when (> (- time touchgrid--last-keyboard) 60)
+      (touchgrid--call-process
+       "xscreensaver-command" nil nil nil "-deactivate")
+      (setq touchgrid--last-keyboard time))))
+
+(defvar touchgrid--pre-keyboard-state nil)
+
+(defun touchgrid--keyboard ()
+  (touchgrid--emacs-focus)
+  (setq touchgrid--pre-keyboard-state touchgrid--state
+	touchgrid--state "keyboard")
+  (touchgrid--grid))
+
+(defun touchgrid--handle-keyboard (action)
+  (touchgrid--emacs-focus)
+  (with-suppressed-warnings ((interactive-only previous-line next-line))
+    (pcase (substring (symbol-name action) 1)
+      ("exit"
+       (touchgrid--remove-grid)
+       (setq touchgrid--state touchgrid--pre-keyboard-state))
+      ("one")
+      ("<"
+       (left-char))
+      (">"
+       (right-char))
+      ("up"
+       (previous-line))
+      ("down"
+       (next-line))
+      (_
+       (setq unread-command-events
+	     (listify-key-sequence
+	      (string (elt (symbol-name action) 1))))))))
 
 (provide 'touchgrid)
 
