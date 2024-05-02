@@ -41,13 +41,13 @@
       (keyboard    exit         next  sort        play      ))
      ("keyboard"
       (none none none none k< k> kup kdown none none none none)
-      (k1 k2 k3 k4 k5 k6 k7 k8 k9 k0 k- k= none)
+      (k1 k2 k3 k4 k5 k6 k7 k8 k9 k0 k- k= kdel)
       (kq kw ke kr kt ky ku ki ko kp k{ k} k|)
       (kshift ka ks kd kf kg kh kj kk kl k\; k\' kret)
       (kexit kz kx kc kv kb kn km k\, k. k/ none))
      ("keyboard-shift"
       (none none none none k< k> kup kdown none none none none)
-      (k! k@ k\# k$ k% k^ k& k* k\( k\) k_ k+ none)
+      (k! k@ k\# k$ k% k^ k& k* k\( k\) k_ k+ kdel)
       (kQ kW kE kR kT kY kU kI kO kP k\[ k\] k\\)
       (kshift kA kS kD kF kG kH kJ kK kL k: k\" kret)
       (kexit kZ kX kC kV kB kN kM k< k> k? none))     
@@ -424,36 +424,37 @@
 (defun touchgrid--handle-keyboard (action)
   (touchgrid--focus touchgrid--pre-keyboard-state)
   (with-suppressed-warnings ((interactive-only previous-line next-line))
-    (let ((prev touchgrid--state))
-      (setq action (substring (symbol-name action) 1))
-      (pcase action
-	("exit"
-	 (touchgrid--remove-grid)
-	 ;; The state may have changed externally (because of a `q' in
-	 ;; mpv, for instance.)  In that case, don't touch it.
-	 (when (touchgrid--keyboard-p)
-	   (setq touchgrid--state touchgrid--pre-keyboard-state)))
-	("one")
-	("shift"
-	 (if (equal touchgrid--state "keyboard")
-	     (setq touchgrid--state "keyboard-shift")
-	   (setq touchgrid--state "keyboard"))
-	 (touchgrid--remove-grid)
-	 (touchgrid--grid))
-	("<"
-	 (left-char))
-	(">"
-	 (right-char))
-	("up"
-	 (previous-line))
-	("down"
-	 (next-line))
-	(_
-	 (let ((char (string (elt action 0))))
-	   (if (equal touchgrid--pre-keyboard-state "emacs")
-	       (setq unread-command-events
-		     (append unread-command-events (listify-key-sequence char)))
-	     (touchgrid--execute-mpv-key char))))))))
+    (setq action (substring (symbol-name action) 1))
+    (pcase action
+      ("exit"
+       (touchgrid--remove-grid)
+       ;; The state may have changed externally (because of a `q' in
+       ;; mpv, for instance.)  In that case, don't touch it.
+       (when (touchgrid--keyboard-p)
+	 (setq touchgrid--state touchgrid--pre-keyboard-state)))
+      ("one")
+      ("shift"
+       (if (equal touchgrid--state "keyboard")
+	   (setq touchgrid--state "keyboard-shift")
+	 (setq touchgrid--state "keyboard"))
+       (touchgrid--remove-grid)
+       (touchgrid--grid))
+      ("<"
+       (left-char))
+      (">"
+       (right-char))
+      ("up"
+       (previous-line))
+      ("down"
+       (next-line))
+      ("del"
+       (backward-delete-char-untabify 1))
+      (_
+       (let ((char (string (elt action 0))))
+	 (if (equal touchgrid--pre-keyboard-state "emacs")
+	     (setq unread-command-events
+		   (append unread-command-events (listify-key-sequence char)))
+	   (touchgrid--execute-mpv-key char)))))))
 
 (defun touchgrid--execute-mpv-key (char)
   (let ((table (make-hash-table :test #'equal)))
