@@ -431,7 +431,9 @@
 	 (setq touchgrid--state touchgrid--pre-keyboard-state))
 	("one")
 	("shift"
-	 (setq touchgrid--state "keyboard-shift")
+	 (if (equal touchgrid--state "keyboard")
+	     (setq touchgrid--state "keyboard-shift")
+	   (setq touchgrid--state "keyboard"))
 	 (touchgrid--remove-grid)
 	 (touchgrid--grid))
 	("<"
@@ -447,12 +449,7 @@
 	   (if (equal touchgrid--pre-keyboard-state "emacs")
 	       (setq unread-command-events
 		     (append unread-command-events (listify-key-sequence char)))
-	     (touchgrid--execute-mpv-key char)))))
-      (when (and (equal prev "keyboard-shift")
-		 (not (equal action "exit")))
-        (setq touchgrid--state "keyboard")
-	(touchgrid--remove-grid)
-	(touchgrid--grid)))))
+	     (touchgrid--execute-mpv-key char))))))))
 
 (defun touchgrid--execute-mpv-key (char)
   (let ((table (make-hash-table :test #'equal)))
