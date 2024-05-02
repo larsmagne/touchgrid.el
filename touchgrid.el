@@ -40,14 +40,14 @@
       (grid        none         none  none        none      )
       (keyboard    exit         next  sort        play      ))
      ("keyboard"
-      (none none none none k< k> kup kdown none none none none)
-      (k1 k2 k3 k4 k5 k6 k7 k8 k9 k0 k- k= kdel)
+      (none none none none k< k> kup kdown none none none kdel)
+      (k1 k2 k3 k4 k5 k6 k7 k8 k9 k0 k- k=)
       (kq kw ke kr kt ky ku ki ko kp k{ k} k|)
       (kshift ka ks kd kf kg kh kj kk kl k\; k\' kret)
       (kexit kz kx kc kv kb kn km k\, k. k/ none))
      ("keyboard-shift"
-      (none none none none k< k> kup kdown none none none none)
-      (k! k@ k\# k$ k% k^ k& k* k\( k\) k_ k+ kdel)
+      (none none none none k< k> kup kdown none none none kdel)
+      (k! k@ k\# k$ k% k^ k& k* k\( k\) k_ k+)
       (kQ kW kE kR kT kY kU kI kO kP k\[ k\] k\\)
       (kshift kA kS kD kF kG kH kJ kK kL k: k\" kret)
       (kexit kZ kX kC kV kB kN kM k< k> k? none))     
