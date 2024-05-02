@@ -16,8 +16,8 @@ specific touch-screen/Emacs video browser/mpv player).  To use this,
 you have to understand Emacs Lisp and hack a bit, but the general
 framework should be sound.  Soundish.
 
-It should work under both Wayland and X, but you need a rather recent
-Emacs.
+The general idea works under both Wayland and X, but it's been moving
+more in a wayland direction lately.
 
 ### Prerequisites
 
@@ -31,7 +31,13 @@ $ sudo adduser `whoami` input
 We also need programs to parse the inputs and do various actions:
 
 ```
-$ sudo apt install libinput-tools xdotool onboard qiv
+$ sudo apt install libinput-tools xdotool pqiv
+```
+
+A utility that's useful for controlling the screen under Wayland/Gnome:
+
+```
+https://github.com/maxwellainatchi/gnome-randr-rust
 ```
 
 The main idea is to define a grid (how detailed is you to you) and
