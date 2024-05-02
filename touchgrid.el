@@ -88,6 +88,14 @@
 (defun touchgrid-start ()
   "Start monitoring for touch events."
   (interactive)
+  ;; Ensure that we don't lose track of the state when using movie
+  ;; commands (instead of touchgrid commands) to start mpv.
+  (setq movie-before-play-callback
+	(lambda ()
+	  (setq touchgrid--state "mpv"))
+	movie-after-play-callback
+	(lambda ()
+	  (setq touchgrid--state "emacs")))
   (server-start)
   (libinput-start 'touchgrid--handle))
 
