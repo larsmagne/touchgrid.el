@@ -40,17 +40,17 @@
       (grid        none         none  none        none      )
       (keyboard    exit         next  sort        play      ))
      ("keyboard"
-      (none none none none k< k> kup kdown none none none kdel)
-      (k1 k2 k3 k4 k5 k6 k7 k8 k9 k0 k- k=)
-      (kq kw ke kr kt ky ku ki ko kp k{ k} k|)
-      (kshift ka ks kd kf kg kh kj kk kl k\; k\' kret)
-      (kexit kz kx kc kv kb kn km k\, k. k/ none))
+      (none none none none k< k> kup kdown none none none none kdel)
+      (k1 k2 k3 k4 k5 k6 k7 k8 k9 k0 k- k= none)
+      (ktab kq kw ke kr kt ky ku ki ko kp k{ k} k| none)
+      (kshift ka ks kd kf kg kh kj kk kl k\; k\' kret none)
+      (kexit kz kx kc kv kb kn km k\, k. k/ none none))
      ("keyboard-shift"
-      (none none none none k< k> kup kdown none none none kdel)
-      (k! k@ k\# k$ k% k^ k& k* k\( k\) k_ k+)
-      (kQ kW kE kR kT kY kU kI kO kP k\[ k\] k\\)
-      (kshift kA kS kD kF kG kH kJ kK kL k: k\" kret)
-      (kexit kZ kX kC kV kB kN kM k< k> k? none))     
+      (none none none none k< k> kup kdown none none none none kdel)
+      (k! k@ k\# k$ k% k^ k& k* k\( k\) k_ k+ none)
+      (ktab kQ kW kE kR kT kY kU kI kO kP k\[ k\] k\\ none)
+      (kshift kA kS kD kF kG kH kJ kK kL k: k\" kret none)
+      (kexit kZ kX kC kV kB kN kM k< k> k? none none))     
      ("mpv"
       (backward-1m backward-10s pause forward-10s forward-1m)
       (dec-sync    dec-volume   pause inc-volume  inc-sync  )
@@ -449,6 +449,8 @@
        (next-line))
       ("del"
        (backward-delete-char-untabify 1))
+      ("tab"
+       (indent-for-tab-command 1))
       (_
        (let ((char (string (elt action 0))))
 	 (if (equal touchgrid--pre-keyboard-state "emacs")
