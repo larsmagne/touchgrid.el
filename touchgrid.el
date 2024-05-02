@@ -165,7 +165,7 @@
 	     (box-height (/ height (length grid)))
 	     (svg (svg-create width (display-pixel-height))))
 	(svg-rectangle svg 0 0 width (display-pixel-height)
-		       :fill "none"
+		       :fill "black"
 		       :fill-opacity "0.5")
 	(cl-loop for y from 0 upto (length grid)
 		 do (svg-line svg 0 (+ offset (* y box-height))
