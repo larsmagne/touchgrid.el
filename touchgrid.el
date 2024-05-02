@@ -95,7 +95,8 @@
 	  (setq touchgrid--state "mpv"))
 	movie-after-play-callback
 	(lambda ()
-	  (setq touchgrid--state "emacs")))
+	  (setq touchgrid--state "emacs")
+	  (touchgrid--remove-grid)))
   (server-start)
   (libinput-start 'touchgrid--handle))
 
@@ -428,7 +429,10 @@
       (pcase action
 	("exit"
 	 (touchgrid--remove-grid)
-	 (setq touchgrid--state touchgrid--pre-keyboard-state))
+	 ;; The state may have changed externally (because of a `q' in
+	 ;; mpv, for instance.)  In that case, don't touch it.
+	 (when (touchgrid--keyboard-p)
+	   (setq touchgrid--state touchgrid--pre-keyboard-state)))
 	("one")
 	("shift"
 	 (if (equal touchgrid--state "keyboard")
