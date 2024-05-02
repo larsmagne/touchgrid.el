@@ -313,7 +313,7 @@
 
 (defun touchgrid--tv-series ()
   (touchgrid--emacs-focus)
-  (call-interactively 'movie-goto-last-series))
+  (movie-browse (file-chase-links "/tv/tv-series/")))
 
 (defun touchgrid--last-seen ()
   (touchgrid--emacs-focus)
