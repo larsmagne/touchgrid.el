@@ -211,7 +211,7 @@
       (let ((default-directory "/"))
 	(setq touchgrid--grid-process
 	      (start-process "qiv" nil
-			     "~/src/qiv/qiv" "-p" "-f" "-i"
+			     "~/src/pqiv/pqiv" "-c" "-f" "-i"
 			     "/tmp/grid.svg"))
 	(when t
 	  (run-at-time 0.5 nil
