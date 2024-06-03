@@ -465,7 +465,7 @@
 		       touchgrid--keyboard-control nil))
 	       (setq unread-command-events
 		     (append unread-command-events
-			     (cl-coerce (key-parse key) 'string))))
+			     (cl-coerce (key-parse key) 'list))))
 	   (touchgrid--execute-mpv-key char)))))))
 
 (defun touchgrid--execute-mpv-key (char)
