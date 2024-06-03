@@ -44,13 +44,13 @@
       (k1 k2 k3 k4 k5 k6 k7 k8 k9 k0 k- k= none)
       (ktab kq kw ke kr kt ky ku ki ko kp k{ k} k| none)
       (kshift ka ks kd kf kg kh kj kk kl k\; k\' kret none)
-      (kexit kz kx kc kv kb kn km k\, k. k/ none none))
+      (kexit kctrl kz kx kc kv kb kn km k\, k. k/ none))
      ("keyboard-shift"
       (none none none none k< k> kup kdown none none none none kdel)
       (k! k@ k\# k$ k% k^ k& k* k\( k\) k_ k+ none)
       (ktab kQ kW kE kR kT kY kU kI kO kP k\[ k\] k\\ none)
       (kshift kA kS kD kF kG kH kJ kK kL k: k\" kret none)
-      (kexit kZ kX kC kV kB kN kM k< k> k? none none))     
+      (kexit kctrl kZ kX kC kV kB kN kM k< k> k? none))
      ("mpv"
       (backward-1m backward-10s pause forward-10s forward-1m)
       (dec-sync    dec-volume   pause inc-volume  inc-sync  )
@@ -414,6 +414,7 @@
       (setq touchgrid--last-keyboard time))))
 
 (defvar touchgrid--pre-keyboard-state nil)
+(defvar touchgrid--keyboard-control nil)
 
 (defun touchgrid--keyboard ()
   (touchgrid--emacs-focus)
@@ -432,7 +433,11 @@
        ;; mpv, for instance.)  In that case, don't touch it.
        (when (touchgrid--keyboard-p)
 	 (setq touchgrid--state touchgrid--pre-keyboard-state)))
+      ;; None
       ("one")
+      ;; Next key is C-.
+      ("ctrl"
+       (setq touchgrid--keyboard-control t))
       ("shift"
        (if (equal touchgrid--state "keyboard")
 	   (setq touchgrid--state "keyboard-shift")
@@ -454,8 +459,13 @@
       (_
        (let ((char (string (elt action 0))))
 	 (if (equal touchgrid--pre-keyboard-state "emacs")
-	     (setq unread-command-events
-		   (append unread-command-events (listify-key-sequence char)))
+	     (let ((key char))
+	       (when touchgrid--keyboard-control
+		 (setq key (concat "C-" key)
+		       touchgrid--keyboard-control nil))
+	       (setq unread-command-events
+		     (append unread-command-events
+			     (cl-coerce (key-parse key) 'string))))
 	   (touchgrid--execute-mpv-key char)))))))
 
 (defun touchgrid--execute-mpv-key (char)
