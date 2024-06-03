@@ -459,7 +459,9 @@
       (_
        (let ((char (string (elt action 0))))
 	 (if (equal touchgrid--pre-keyboard-state "emacs")
-	     (let ((key char))
+	     (let ((key (if (equal action "ret")
+			    "<return>"
+			  char)))
 	       (when touchgrid--keyboard-control
 		 (setq key (concat "C-" key)
 		       touchgrid--keyboard-control nil))
