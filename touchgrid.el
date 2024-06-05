@@ -40,15 +40,15 @@
       (grid        none         none  none        none      )
       (keyboard    exit         next  sort        play      ))
      ("keyboard"
-      (none none none none k< k> kup kdown none none none none kdel)
-      (k1 k2 k3 k4 k5 k6 k7 k8 k9 k0 k- k= none)
-      (ktab kq kw ke kr kt ky ku ki ko kp k{ k} k| none)
+      (none none none none none k< k> kup kdown none none none none kdel)
+      (none k1 k2 k3 k4 k5 k6 k7 k8 k9 k0 k- k= none)
+      (ktab kq kw ke kr kt ky ku ki ko kp k{ k} k|)
       (kshift ka ks kd kf kg kh kj kk kl k\; k\' kret none)
-      (kexit kctrl kz kx kc kv kb kn km k\, k. k/ none))
+      (kexit kctrl none kz kx kc kv kb kn km k\, k. k/ none))
      ("keyboard-shift"
-      (none none none none k< k> kup kdown none none none none kdel)
-      (k! k@ k\# k$ k% k^ k& k* k\( k\) k_ k+ none)
-      (ktab kQ kW kE kR kT kY kU kI kO kP k\[ k\] k\\ none)
+      (none none none none none k< k> kup kdown none none none none kdel)
+      (none k! k@ k\# k$ k% k^ k& k* k\( k\) k_ k+ none)
+      (ktab kQ kW kE kR kT kY kU kI kO kP k\[ k\] k\\ none none)
       (kshift kA kS kD kF kG kH kJ kK kL k: k\" kret none)
       (kexit kctrl kZ kX kC kV kB kN kM k< k> k? none))
      ("mpv"
@@ -100,29 +100,39 @@
   (server-start)
   (libinput-start 'touchgrid--handle))
 
+(defun touchgrid--find-element (grid x y)
+  (let* ((width (display-pixel-width))
+	 (height (touchgrid--height))
+	 (offset (if touchgrid--rotation
+		     0
+		   (- (display-pixel-height) height)))
+	 (box-width (/ width (length (car grid))))
+	 (box-height (/ height (length grid))))
+    (elt (elt grid
+	      (truncate
+	       (/ (- (* (/ y 100.0)
+			(display-pixel-height))
+		     offset)
+		  box-height)))
+	 (truncate (/ (* (/ x 100.0) width)
+		      box-width)))))
+
+(defun touchgrid--find-grid (device)
+  (cdr (assoc touchgrid--state
+	      (cdr (assoc device
+			  touchgrid-actions)))))
+
 (defun touchgrid--handle (event)
   (when touchgrid-debug
     (message "%S" touchgrid--state))
+  (when (cl-getf event :y)
+    (message "%s" (cl-getf event :y)))
   (when-let ((grid (touchgrid--reorient-grid
-		    (cdr (assoc touchgrid--state
-				(cdr (assoc (cl-getf event :device-name)
-					    touchgrid-actions)))))))
+		    (touchgrid--find-grid (cl-getf event :device-name)))))
     (when (equal (cl-getf event :type) "TOUCH_DOWN")
       ;; The positions we get are percentages of width/height.
-      (let* ((width (display-pixel-width))
-	     (height (touchgrid--height))
-	     (offset (- (display-pixel-height) height))
-	     (box-width (/ width (length (car grid))))
-	     (box-height (/ height (length grid)))
-	     (action
-	      (elt (elt grid
-			(truncate
-			 (/ (- (* (/ (cl-getf event :y) 100.0)
-				  (display-pixel-height))
-			       offset)
-			    box-height)))
-		   (truncate (/ (* (/ (cl-getf event :x) 100.0) width)
-				box-width)))))
+      (let ((action (touchgrid--find-element
+		     grid (cl-getf event :x) (cl-getf event :y))))
 	;; Disable all other commands when the keyboard is active.
 	(if (touchgrid--keyboard-p)
 	    (touchgrid--handle-keyboard action)
