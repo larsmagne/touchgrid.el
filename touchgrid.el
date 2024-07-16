@@ -40,17 +40,17 @@
       (grid        none         none  none        none      )
       (keyboard    exit         next  sort        play      ))
      ("keyboard"
-      (none none none none none k< k> kup kdown none none none none kdel)
+      (none none none none none kleft kright kup kdown none none none none kdel)
       (none k1 k2 k3 k4 k5 k6 k7 k8 k9 k0 k- k= none)
       (ktab kq kw ke kr kt ky ku ki ko kp k{ k} k|)
       (kshift ka ks kd kf kg kh kj kk kl k\; k\' kret none)
       (kexit kctrl none kz kx kc kv kb kn km k\, k. k/ none))
      ("keyboard-shift"
-      (none none none none none k< k> kup kdown none none none none kdel)
+      (none none none none none kleft kright kup kdown none none none none kdel)
       (none k! k@ k\# k$ k% k^ k& k* k\( k\) k_ k+ none)
-      (ktab kQ kW kE kR kT kY kU kI kO kP k\[ k\] k\\ none none)
+      (ktab kQ kW kE kR kT kY kU kI kO kP k\[ k\] k\\)
       (kshift kA kS kD kF kG kH kJ kK kL k: k\" kret none)
-      (kexit kctrl kZ kX kC kV kB kN kM k< k> k? none))
+      (kexit kctrl none kZ kX kC kV kB kN kM k< k> k? none))
      ("mpv"
       (backward-1m backward-10s pause forward-10s forward-1m)
       (dec-sync    dec-volume   pause inc-volume  inc-sync  )
@@ -125,8 +125,6 @@
 (defun touchgrid--handle (event)
   (when touchgrid-debug
     (message "%S" touchgrid--state))
-  (when (cl-getf event :y)
-    (message "%s" (cl-getf event :y)))
   (when-let ((grid (touchgrid--reorient-grid
 		    (touchgrid--find-grid (cl-getf event :device-name)))))
     (when (equal (cl-getf event :type) "TOUCH_DOWN")
@@ -454,9 +452,9 @@
 	 (setq touchgrid--state "keyboard"))
        (touchgrid--remove-grid)
        (touchgrid--grid))
-      ("<"
+      ("left"
        (left-char))
-      (">"
+      ("right"
        (right-char))
       ("up"
        (previous-line))
