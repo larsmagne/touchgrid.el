@@ -33,8 +33,7 @@
 (defun libinput-start (callback)
   "Start listening for events."
   (libinput-stop)
-  (save-excursion
-    (set-buffer (get-buffer-create " *libinput*"))
+  (with-current-buffer (get-buffer-create " *libinput*")
     (setq-local libinput--prev-point (point-max))
     (setq-local libinput--callback callback)
     (setq-local libinput--device-map (make-hash-table :test #'equal))
@@ -53,8 +52,7 @@
 (defun libinput--filter (process string)
   (let ((lines nil)
 	callback map)
-    (save-excursion
-      (set-buffer (process-buffer process))
+    (with-current-buffer (process-buffer process)
       (setq callback libinput--callback
 	    map libinput--device-map)
       (goto-char (point-max))
@@ -71,10 +69,12 @@
       (let ((event (libinput--parse-line line)))
 	;; At startup (or when new devices are added), create a map
 	;; from the physical to logical names.
-	(when (equal (getf event :type) "DEVICE_ADDED")
-	  (setf (gethash (getf event :device-id) map) (getf event :name)))
-	(setf (getf event :device-name)
-	      (gethash (getf event :device-id) map (getf event :device-id)))
+	(when (equal (cl-getf event :type) "DEVICE_ADDED")
+	  (setf (gethash (cl-getf event :device-id) map)
+		(cl-getf event :name)))
+	(setf (cl-getf event :device-name)
+	      (gethash (cl-getf event :device-id) map
+		       (cl-getf event :device-id)))
 	(condition-case err
 	    (funcall callback event)
 	  (error
@@ -85,6 +85,9 @@
   ;; means...
   ;; -event3   KEYBOARD_KEY     +501.91s	*** (-1) pressed
   ;;  event3   KEYBOARD_KEY     +502.02s	*** (-1) pressed
+  ;; -event4   KEYBOARD_KEY     +3.719s	        KEY_MUTE (113) pressed
+  ;;  event4   KEYBOARD_KEY     +3.825s	        KEY_MUTE (113) released
+
   (let* ((elem (split-string (substring line 1) "[ \n\t]+" t))
 	 (type (cadr elem)))
     (append
@@ -102,6 +105,9 @@
       ((equal type "SWITCH_TOGGLE")
        (list :switch (nth 4 elem)
 	     :state (nth 6 elem)))
+      ((equal type "KEYBOARD_KEY")
+       (list :key (nth 3 elem)
+	     :pressed (equal (car (last elem)) "pressed")))
       ((equal type "DEVICE_ADDED")
        (list :name (mapconcat
 		    #'identity
