@@ -87,6 +87,7 @@
   ;;  event3   KEYBOARD_KEY     +502.02s	*** (-1) pressed
   ;; -event4   KEYBOARD_KEY     +3.719s	        KEY_MUTE (113) pressed
   ;;  event4   KEYBOARD_KEY     +3.825s	        KEY_MUTE (113) released
+  ;;  event2   TOUCH_DOWN       +5.526s	        0 (0) 55.04/ 8.28 (595.00/159.00mm)
 
   (let* ((elem (split-string (substring line 1) "[ \n\t]+" t))
 	 (type (cadr elem)))
