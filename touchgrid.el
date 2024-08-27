@@ -124,7 +124,7 @@
 
 (defun touchgrid--handle (event)
   (when touchgrid-debug
-    (message "%S" touchgrid--state))
+    (message "%S" event))
   (when-let ((grid (touchgrid--reorient-grid
 		    (touchgrid--find-grid (cl-getf event :device-name)))))
     (when (equal (cl-getf event :type) "TOUCH_DOWN")
