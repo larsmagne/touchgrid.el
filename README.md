@@ -1,5 +1,3 @@
-# libinput.el/touchgrid.el
-
 This Emacs library divides the screen into zones and executed actions
 when those zones are touched.  This is done by parsing the output from
 the libinput tools.
@@ -20,6 +18,10 @@ The general idea works under both Wayland and X, but it's been moving
 more in a wayland direction lately.
 
 ### Prerequisites
+
+You need the libinput.el package:
+
+https://github.com/larsmagne/libinput.el
 
 On Ubuntu, your user needs to be in the input group to be able to
 access the events.  
